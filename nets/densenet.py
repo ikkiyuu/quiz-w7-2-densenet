@@ -171,7 +171,8 @@ def densenet(images, num_classes=1001, is_training=False,
                 end_points['Logits'] = logits
 
 
-                end_points['Predictions'] = slim.softmax(logits, scope='predictions')
+                #end_points['Predictions'] = slim.softmax(logits, scope='predictions')
+                end_points['Predictions'] = prediction_fn(logits, scope='Predictions')
 
 
     return logits, end_points
