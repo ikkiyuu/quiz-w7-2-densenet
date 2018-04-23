@@ -38,7 +38,7 @@ tf.app.flags.DEFINE_string(
     'master', '', 'The address of the TensorFlow master to use.')
 
 tf.app.flags.DEFINE_string(
-    'checkpoint_path', '/output/tfmodel/',
+    'checkpoint_path', '/output/ckpt',
     'The directory where the model was written to or an absolute path to a '
     'checkpoint file.')
 
