@@ -161,7 +161,7 @@ def densenet(images, num_classes=1001, is_training=False,
                 if not num_classes:
                   return net, end_points
                 logits = slim.fully_connected(net, 
-                                      num_classes = num_classes,
+                                      num_classes,
                                       biases_initializer=tf.zeros_initializer(),
                                       weights_initializer=trunc_normal(0.01),
                                       weights_regularizer=None,
