@@ -108,7 +108,7 @@ def densenet(images, num_classes=1001, is_training=False,
                 # The image was convoluted by a kernel size of [3,3], 
                 # the output channel was also set to 48. 
 
-                net = slim.conv2d(image, 48, [3,3], scope = 'first_conv')
+                net = slim.conv2d(images, 48, [3,3], scope = 'first_conv')
 
                 end_points['first_conv'] = net
 
