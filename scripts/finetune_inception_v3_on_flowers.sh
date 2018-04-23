@@ -68,6 +68,7 @@ python train_image_classifier.py \
   --log_every_n_steps=100 \
   --optimizer=rmsprop \
   --weight_decay=0.00004
+  --clone_on_cpu=True
 
 # Run evaluation.
 python eval_image_classifier.py \
@@ -77,6 +78,7 @@ python eval_image_classifier.py \
   --dataset_split_name=validation \
   --dataset_dir=${DATASET_DIR} \
   --model_name=inception_v3
+  --clone_on_cpu=True
 
 # Fine-tune all the new layers for 500 steps.
 python train_image_classifier.py \
@@ -95,6 +97,7 @@ python train_image_classifier.py \
   --log_every_n_steps=10 \
   --optimizer=rmsprop \
   --weight_decay=0.00004
+  --clone_on_cpu=True
 
 # Run evaluation.
 python eval_image_classifier.py \
@@ -104,3 +107,4 @@ python eval_image_classifier.py \
   --dataset_split_name=validation \
   --dataset_dir=${DATASET_DIR} \
   --model_name=inception_v3
+  --clone_on_cpu=True

@@ -29,6 +29,45 @@ def block(net, layers, growth, scope='block'):
         net = tf.concat(axis=3, values=[net, tmp])
     return net
 
+def dense_block(net, growth, scope='dense_block'):
+    input_0 = net
+
+  	# 1st layer 
+    bottleneck = bn_act_conv_drp(input_0, 4 * growth, [1, 1], 
+                                scope=scope + '_conv1x1' + '_1')
+    tmp = bn_act_conv_drp(bottleneck, growth, [3, 3],
+                                scope=scope + '_conv3x3' + '_1')
+    input_1 = tf.concat(axis=3, values=[input_0, tmp])
+
+    # 2nd layer
+    bottleneck = bn_act_conv_drp(input_1, 4 * growth, [1, 1],
+                                       scope=scope + '_conv1x1' + '_2')
+    tmp = bn_act_conv_drp(bottleneck, growth, [3, 3],
+                                scope=scope + '_conv3x3' + '_2')
+    input_2 = tf.concat(axis=3, values=[input_0, input_1, tmp])
+
+    # 3rd layer
+    bottleneck = bn_act_conv_drp(input_2, 4 * growth, [1, 1],
+                                       scope=scope + '_conv1x1' + '_3')
+    tmp = bn_act_conv_drp(bottleneck, growth, [3, 3],
+                                scope=scope + '_conv3x3' + '_3')
+    input_3 = tf.concat(axis=3, values=[input_0, input_1, input_2, tmp])
+
+    # 4th layer
+    bottleneck = bn_act_conv_drp(input_3, 4 * growth, [1, 1],
+                                       scope=scope + '_conv1x1' + '_4')
+    tmp = bn_act_conv_drp(bottleneck, growth, [3, 3],
+                                scope=scope + '_conv3x3' + '_4')
+    input_4 = tf.concat(axis=3, values=[input_0, input_1, input_2, input_3,tmp])
+
+    # 5th layer
+    bottleneck = bn_act_conv_drp(input_4, 4 * growth, [1, 1],
+                                       scope=scope + '_conv1x1' + '_5')
+    tmp = bn_act_conv_drp(bottleneck, growth, [3, 3],
+                                scope=scope + '_conv3x3' + '_5')
+    output = tf.concat(axis=3, values=[input_0, input_1, input_2, input_3, input_4, tmp])
+
+    return output
 
 def densenet(images, num_classes=1001, is_training=False,
              dropout_keep_prob=0.8,
@@ -60,10 +99,80 @@ def densenet(images, num_classes=1001, is_training=False,
     with tf.variable_scope(scope, 'DenseNet', [images, num_classes]):
         with slim.arg_scope(bn_drp_scope(is_training=is_training,
                                          keep_prob=dropout_keep_prob)) as ssc:
-            pass
-            ##########################
-            # Put your code here.
-            ##########################
+            with slim.arg_scope(densenet_arg_scope(weight_decay=0.004)):
+                pass
+                ##########################
+                # Put your code here.
+                ##########################
+                # At the beginning, the input was just the input image.
+                # The image was convoluted by a kernel size of [3,3], 
+                # the output channel was also set to 48. 
+
+                net = slim.conv2d(image, 48, [3,3], scope = 'first_conv')
+
+                end_points['first_conv'] = net
+
+                # The output of the first convolution was sent to the
+                # first dense block.
+                # We already have the codes for the dense block: 
+                # block(net, layers, growth, scope='block'). 
+                # However, in this codes, the input of each layer seems only concatenated 
+                # the output and input of the last layer instead of all the inputs and outputs
+                # of the layers in the front. Therefore, I didn't used that function.
+
+                #1st dense block
+                net = dense_block(net, growth=growth, scope='dense_block_1')
+                end_points['dense_block_1'] = net
+
+                # Add a pooling layer at the end of the dense block
+                # The channels of the conv2d was set the channels at the fisrt conv layer
+                # plus the growth raate * the number of layers in each dense
+
+                num_channels = 24 + growth * 5
+                net = slim.batch_norm(net, scope='trans_batch_1')
+                net = slim.conv2d(net,num_channels, [1,1], scope='trans_conv2d_1')
+                net = slim.avg_pool2d(net,[2,2], stride=1, padding="same", scope='trans_pool_1')
+
+                #Add the 2nd dense block
+
+                net = dense_block(net, growth=growth, scope='dense_block_2')
+                end_points['dense_block_2'] = net
+
+                #Add a pooling layer at the end of the dense block
+
+                num_channels += growth * 5
+                net = slim.batch_norm(net, scope='trans_batch_2')
+                net = slim.conv2d(net,num_channels, [1,1], scope='trans_conv2d_2')
+                net = slim.avg_pool2d(net,[2,2], stride=1, padding="same", scope='trans_pool_2')
+
+                #Add the 3nd dense block
+
+                net = dense_block(net, growth=growth, scope='dense_block_3')
+                end_points['dense_block_3'] = net
+
+                #Add a pooling layer at the end of the dense block
+
+                num_channels += growth * 5
+                net = slim.batch_norm(net, scope='trans_batch_3')
+                net = slim.conv2d(net,num_channels, [1,1], scope='trans_conv2d_3')
+                net = slim.avg_pool2d(net,net.shape[1:3], stride=1, padding="same", scope='trans_pool_3')
+
+
+                if not num_classes:
+                  return net, end_points
+                logits = slim.fully_connected(net, 
+                                      num_classes = num_classes,
+                                      biases_initializer=tf.zeros_initializer(),
+                                      weights_initializer=trunc_normal(0.01),
+                                      weights_regularizer=None,
+                                      activation_fn=None,
+                                      scope='logits')
+
+                end_points['Logits'] = logits
+
+
+                end_points['Predictions'] = slim.softmax(logits, scope='predictions')
+
 
     return logits, end_points
 
