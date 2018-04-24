@@ -29,45 +29,45 @@ def block(net, layers, growth, scope='block'):
         net = tf.concat(axis=3, values=[net, tmp])
     return net
 
-# def dense_block(net, growth, scope='dense_block'):
-#     input_0 = net
+def dense_block(net, growth, scope='dense_block'):
+    input_0 = net
 
-#   	# 1st layer 
-#     bottleneck = bn_act_conv_drp(input_0, 4 * growth, [1, 1], 
-#                                 scope=scope + '_conv1x1' + '_1')
-#     tmp = bn_act_conv_drp(bottleneck, growth, [3, 3],
-#                                 scope=scope + '_conv3x3' + '_1')
-#     input_1 = tf.concat(axis=3, values=[input_0, tmp])
+  	# 1st layer 
+    bottleneck = bn_act_conv_drp(input_0, 4 * growth, [1, 1], 
+                                scope=scope + '_conv1x1' + '_1')
+    tmp = bn_act_conv_drp(bottleneck, growth, [3, 3],
+                                scope=scope + '_conv3x3' + '_1')
+    input_1 = tf.concat(axis=3, values=[input_0, tmp])
 
-#     # 2nd layer
-#     bottleneck = bn_act_conv_drp(input_1, 4 * growth, [1, 1],
-#                                        scope=scope + '_conv1x1' + '_2')
-#     tmp = bn_act_conv_drp(bottleneck, growth, [3, 3],
-#                                 scope=scope + '_conv3x3' + '_2')
-#     input_2 = tf.concat(axis=3, values=[input_0, input_1, tmp])
+    # 2nd layer
+    bottleneck = bn_act_conv_drp(input_1, 4 * growth, [1, 1],
+                                       scope=scope + '_conv1x1' + '_2')
+    tmp = bn_act_conv_drp(bottleneck, growth, [3, 3],
+                                scope=scope + '_conv3x3' + '_2')
+    input_2 = tf.concat(axis=3, values=[input_0, input_1, tmp])
 
-#     # 3rd layer
-#     bottleneck = bn_act_conv_drp(input_2, 4 * growth, [1, 1],
-#                                        scope=scope + '_conv1x1' + '_3')
-#     tmp = bn_act_conv_drp(bottleneck, growth, [3, 3],
-#                                 scope=scope + '_conv3x3' + '_3')
-#     input_3 = tf.concat(axis=3, values=[input_0, input_1, input_2, tmp])
+    # 3rd layer
+    bottleneck = bn_act_conv_drp(input_2, 4 * growth, [1, 1],
+                                       scope=scope + '_conv1x1' + '_3')
+    tmp = bn_act_conv_drp(bottleneck, growth, [3, 3],
+                                scope=scope + '_conv3x3' + '_3')
+    input_3 = tf.concat(axis=3, values=[input_0, input_1, input_2, tmp])
 
-#     # 4th layer
-#     bottleneck = bn_act_conv_drp(input_3, 4 * growth, [1, 1],
-#                                        scope=scope + '_conv1x1' + '_4')
-#     tmp = bn_act_conv_drp(bottleneck, growth, [3, 3],
-#                                 scope=scope + '_conv3x3' + '_4')
-#     input_4 = tf.concat(axis=3, values=[input_0, input_1, input_2, input_3,tmp])
+    # 4th layer
+    bottleneck = bn_act_conv_drp(input_3, 4 * growth, [1, 1],
+                                       scope=scope + '_conv1x1' + '_4')
+    tmp = bn_act_conv_drp(bottleneck, growth, [3, 3],
+                                scope=scope + '_conv3x3' + '_4')
+    input_4 = tf.concat(axis=3, values=[input_0, input_1, input_2, input_3,tmp])
 
-#     # 5th layer
-#     bottleneck = bn_act_conv_drp(input_4, 4 * growth, [1, 1],
-#                                        scope=scope + '_conv1x1' + '_5')
-#     tmp = bn_act_conv_drp(bottleneck, growth, [3, 3],
-#                                 scope=scope + '_conv3x3' + '_5')
-#     output = tf.concat(axis=3, values=[input_0, input_1, input_2, input_3, input_4, tmp])
+    # 5th layer
+    bottleneck = bn_act_conv_drp(input_4, 4 * growth, [1, 1],
+                                       scope=scope + '_conv1x1' + '_5')
+    tmp = bn_act_conv_drp(bottleneck, growth, [3, 3],
+                                scope=scope + '_conv3x3' + '_5')
+    output = tf.concat(axis=3, values=[input_0, input_1, input_2, input_3, input_4, tmp])
 
-#     return output
+    return output
 
 def densenet(images, num_classes=1001, is_training=False,
              dropout_keep_prob=0.8,
@@ -104,14 +104,19 @@ def densenet(images, num_classes=1001, is_training=False,
                 ##########################
                 # Put your code here.
                 ##########################
+                # According to the DenseNet-121
+
                 # At the beginning, the input was just the input image.
-                # The image was convoluted by a kernel size of [3,3], 
+                # The image was convoluted by a kernel size of [7,7], 
                 # the output channel was also set to 2 * growth. 
+                # 224 x 224
                 num_channels = 2 * growth
-
-                net = slim.conv2d(images, num_channels, [3,3], stride=2, scope = 'first_conv')
-
-                end_points['first_conv'] = net
+                # 112 x 112 
+                net = slim.conv2d(images, num_channels, [7,7], stride=2, scope = 'first_conv')
+                # 56 x 56
+                net = slim.max_pool2d(images, [2,2], stride=2, scope = 'first_pool')
+                
+                end_points['first_pool'] = net
 
                 # The output of the first convolution was sent to the first dense block.
                 # We already have the codes for the dense block: 
@@ -122,43 +127,59 @@ def densenet(images, num_classes=1001, is_training=False,
                 # of all the preceding layers. 
                 # I also tried an fully connection of all the inputs, but a resoruce exhaust error occurred.
                 
-                #1st dense block
-                net = block(net, layers=5, growth=growth, scope='dense_block_1')
+                #1st dense block 
+                # 56 x 56
+                net = block(net, layers=6, growth=growth, scope='dense_block_1')
                 # net = dense_block(net, growth=growth, scope='dense_block_1')
                 end_points['dense_block_1'] = net
 
                 # Add a transition layer at the end of the dense block
                 # The channels of the conv2d was set to the number of the channels at the fisrt conv layer
                 # plus the growth rate * the number of layers in each dense
-
-                num_channels = 12 + growth * 5
+                # 28 x 28
+                num_channels = 12 + growth * 6
                 net = slim.batch_norm(net, scope='trans_batch_1')
                 net = slim.conv2d(net,num_channels, [1,1], scope='trans_conv2d_1')
                 net = slim.avg_pool2d(net,[2,2], stride=2, padding="same", scope='trans_pool_1')
 
                 #Add the 2nd dense block
-                net = block(net, layers=5, growth=growth, scope='dense_block_2')
+                # 28 x 28
+                net = block(net, layers=12, growth=growth, scope='dense_block_2')
                 # net = dense_block(net, growth=growth, scope='dense_block_2')
                 end_points['dense_block_2'] = net
 
-                #Add a pooling layer at the end of the dense block
-
-                num_channels += growth * 5
+                #Add a transition layer at the end of the dense block
+                # 14 x 14
+                num_channels += growth * 12
                 net = slim.batch_norm(net, scope='trans_batch_2')
                 net = slim.conv2d(net,num_channels, [1,1], scope='trans_conv2d_2')
                 net = slim.avg_pool2d(net,[2,2], stride=2, padding="same", scope='trans_pool_2')
 
                 #Add the 3nd dense block
-                net = block(net, layers=5, growth=growth, scope='dense_block_3')
+                # 14 x 14
+                net = block(net, layers=24, growth=growth, scope='dense_block_3')
                 # net = dense_block(net, growth=growth, scope='dense_block_3')
                 end_points['dense_block_3'] = net
 
-                #Add a pooling layer at the end of the dense block
-
-                num_channels += growth * 5
+                #Add a transition layer at the end of the dense block
+                # 7 x 7
+                num_channels += growth * 24
                 net = slim.batch_norm(net, scope='trans_batch_3')
                 net = slim.conv2d(net,num_channels, [1,1], scope='trans_conv2d_3')
-                net = slim.avg_pool2d(net,net.shape[1:3], stride=1, padding="valid", scope='trans_pool_3')
+                net = slim.avg_pool2d(net,[2,2], stride=2, padding="same", scope='trans_pool_3')
+
+                #Add the 4th dense block
+                # 7 x 7
+                net = block(net, layers=16, growth=growth, scope='dense_block_4')
+                # net = dense_block(net, growth=growth, scope='dense_block_3')
+                end_points['dense_block_4'] = net
+
+                #Add a pooling layer at the end of the dense block
+                # 1 x 1
+                num_channels += growth * 16
+                net = slim.batch_norm(net, scope='trans_batch_4')
+                net = slim.conv2d(net,num_channels, [1,1], scope='trans_conv2d_4')
+                net = slim.avg_pool2d(net,net.shape[1:3], stride=1, padding="valid", scope='trans_pool_4')
 
 
                 if not num_classes:
