@@ -88,7 +88,7 @@ def densenet(images, num_classes=1001, is_training=False,
       end_points: a dictionary from components of the network to the corresponding
         activation.
     """
-    growth = 8
+    growth = 12
     compression_rate = 0.5
 
     def reduce_dim(input_feature):
@@ -106,30 +106,32 @@ def densenet(images, num_classes=1001, is_training=False,
                 ##########################
                 # At the beginning, the input was just the input image.
                 # The image was convoluted by a kernel size of [3,3], 
-                # the output channel was also set to 48. 
+                # the output channel was also set to 2 * growth. 
+                num_channels = 2 * growth
 
-                net = slim.conv2d(images, 48, [3,3], scope = 'first_conv')
+                net = slim.conv2d(images, num_channels, [3,3], stride=2, scope = 'first_conv')
 
                 end_points['first_conv'] = net
 
-                # The output of the first convolution was sent to the
-                # first dense block.
+                # The output of the first convolution was sent to the first dense block.
                 # We already have the codes for the dense block: 
                 # block(net, layers, growth, scope='block'). 
-                # However, in this codes, the input of each layer seems only concatenated 
+                # As mentioned in the paper, the l layer recieves the Feature maps of all preceding layers. 
+                # However, in my opinion, in this code, the input of each layer might only concatenate 
                 # the output and input of the last layer instead of all the inputs and outputs
-                # of the layers in the front. Therefore, I didn't used that function.
-
+                # of all the preceding layers. 
+                # I also tried an fully connection of all the inputs, but a resoruce exhaust error occurred.
+                
                 #1st dense block
                 net = block(net, layers=5, growth=growth, scope='dense_block_1')
                 # net = dense_block(net, growth=growth, scope='dense_block_1')
                 end_points['dense_block_1'] = net
 
-                # Add a pooling layer at the end of the dense block
-                # The channels of the conv2d was set the channels at the fisrt conv layer
-                # plus the growth raate * the number of layers in each dense
+                # Add a transition layer at the end of the dense block
+                # The channels of the conv2d was set to the number of the channels at the fisrt conv layer
+                # plus the growth rate * the number of layers in each dense
 
-                num_channels = 24 + growth * 5
+                num_channels = 12 + growth * 5
                 net = slim.batch_norm(net, scope='trans_batch_1')
                 net = slim.conv2d(net,num_channels, [1,1], scope='trans_conv2d_1')
                 net = slim.avg_pool2d(net,[2,2], stride=2, padding="same", scope='trans_pool_1')
